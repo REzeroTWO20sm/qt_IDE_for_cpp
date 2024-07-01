@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/new/files">
+        <file>syntaxHighlighter.cpp</file>
+        <file>syntaxHighlighter_copy.cpp</file>
+    </qresource>
+</RCC>
