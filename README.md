@@ -1,2 +1,73 @@
-simple qt IDE with syntaxHighlighter, g++ responce in program for C++ work in linux
+# simple qt IDE with syntaxHighlighter, g++ responce in program for C++ work in linux
 https://youtu.be/NLrmpebBxO0 how it is work
+
+```markdown
+# C++ Simple IDE
+
+Простая IDE для редактирования, сборки и запуска C++ кода с подсветкой синтаксиса
+
+![Screenshot](screenshot.png) <!-- (добавьте свой скриншот при необходимости) -->
+
+## Основные возможности
+
+- Двухпанельный интерфейс:
+  - Левая область: редактор кода с подсветкой синтаксиса C++
+  - Правая область: вывод результатов выполнения программы
+- Кнопка "Собрать и запуск" для компиляции и выполнения кода
+- Поддержка стандарта C++17
+- Подсветка синтаксиса в реальном времени
+
+## Сборка и установка
+
+### Необходимые зависимости
+- Компилятор C++ (g++/clang)
+- CMake ≥ 3.14
+- Qt5/Qt6 (Core, Widgets, LinguistTools)
+
+### Инструкция по сборке
+
+1. Клонируйте репозиторий:
+```bash
+git clone https://github.com/yourusername/C_2plus_syntax_highlighting.git
+cd C_2plus_syntax_highlighting
+```
+
+2. Создайте и перейдите в директорию сборки:
+```bash
+mkdir build
+cd build
+```
+
+3. Запустите конфигурацию CMake:
+```bash
+cmake ..
+```
+
+4. Соберите проект:
+```bash
+make
+```
+
+5. (Опционально) Установите программу:
+```bash
+sudo make install
+```
+
+## Запуск программы
+
+После сборки выполните:
+```bash
+./build/C_2plus_syntax_highlighting
+```
+
+Или если установили систему:
+```bash
+C_2plus_syntax_highlighting
+```
+
+## Использование
+1. Введите или отредактируйте C++ код в левой панели
+2. Нажмите кнопку "Собрать и запустить"
+3. Результаты выполнения программы отобразятся в нижней панели
+4. Ошибки компиляции будут показаны в правой панели
+

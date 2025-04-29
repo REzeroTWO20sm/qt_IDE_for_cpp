@@ -2,10 +2,13 @@
 #include "syntaxHighlighter.h"
 #include <QDebug>
 #include <QProcess>
+#include <QFileInfo>
+#include <QDir>
+#include <QMessageBox>
 
-Save_and_build::Save_and_build(QWidget* pwgt/*=0*/):QWidget(pwgt){
-    fileName_line = new QLineEdit;
-    fileSave_btn = new QPushButton("save_and_build");
+Save_and_build::Save_and_build(QWidget* pwgt) : QWidget(pwgt) {
+    fileName_line = new QLineEdit(this);
+    fileSave_btn = new QPushButton("save_and_build", this);
 
     QFont fnt("Lucida Console", 9, QFont::Normal);
     code_edit.document()->setDefaultFont(fnt);
@@ -16,13 +19,10 @@ Save_and_build::Save_and_build(QWidget* pwgt/*=0*/):QWidget(pwgt){
     pal.setColor(QPalette::Text, Qt::yellow);
     code_edit.setPalette(pal);
 
-    //code_edit.show();
     output_text.setReadOnly(true);
-    code_edit.resize(640,480);
+    code_edit.resize(640, 480);
 
-    // Layour step
-    QVBoxLayout* mainLay = new QVBoxLayout;
-
+    QVBoxLayout* mainLay = new QVBoxLayout(this);
     QHBoxLayout* lay_save_and_build = new QHBoxLayout;
     lay_save_and_build->addWidget(fileName_line);
     lay_save_and_build->addWidget(fileSave_btn);
@@ -31,63 +31,82 @@ Save_and_build::Save_and_build(QWidget* pwgt/*=0*/):QWidget(pwgt){
     mainLay->addWidget(&code_edit);
     mainLay->addWidget(&output_text);
 
-    connect(fileSave_btn,SIGNAL(clicked()), SLOT(slotSaveButtonClicked()));
-
-    setLayout(mainLay);
+    connect(fileSave_btn, &QPushButton::clicked, this, &Save_and_build::slotSaveButtonClicked);
 }
 
-void Save_and_build::buildFile(const QString& filePath, const QString& fileName){
-    QString relise_file_name = fileName;
-    int dotIndex = fileName.lastIndexOf('.');
-    if (dotIndex != -1) {
-        relise_file_name = fileName.left(dotIndex);
-    }
-    qDebug() << relise_file_name;
-    QString command = QString("g++ %1 -o /home/rezero20sm/CppFiles/%2 --std=c++14 -I/usr/local/include && /home/rezero20sm/CppFiles/%3").arg(filePath, relise_file_name,relise_file_name);
-    qDebug() << command;
+void Save_and_build::buildFile(const QString& filePath, const QString& fileName) {
+    // Генерируем уникальное имя для выходного файла
+    QFileInfo fi(filePath);
+    QString outputName = fi.completeBaseName() + "_bin";
+    QString outputPath = fi.path() + "/" + outputName;
 
-    // Используем popen для запуска команды и получения вывода
+    // Экранируем пути с пробелами
+    QString command = QString("g++ \"%1\" -o \"%2\" --std=c++14 -I/usr/local/include && \"%2\"")
+                      .arg(filePath, outputPath);
+
+    qDebug() << "Executing:" << command;
+
     FILE* pipe = popen(command.toLocal8Bit().constData(), "r");
     if (!pipe) {
-        qDebug() << "Ошибка запуска команды";
+        output_text.append("Failed to start compiler!\n");
+        return;
     }
 
-    // Читаем вывод команды
+    // Чтение вывода
     char buffer[128];
     QString outputStr;
-    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+    while (fgets(buffer, sizeof(buffer), pipe)) {
         outputStr += QString::fromLocal8Bit(buffer);
     }
 
-    // Закрываем пайп
-    pclose(pipe);
-
-    output_text.clear();
+    // Проверка статуса компиляции
+    int status = pclose(pipe);
     output_text.setText(outputStr);
-
-    qDebug() << "Output:" << outputStr;
-
+    if (status != 0) {
+        output_text.append("\nCompilation failed (code: " + QString::number(status) + ")");
+    }
 }
 
-void Save_and_build::slotSaveButtonClicked(){
-    fileName = fileName_line->text();
-    filePath = "/home/rezero20sm/CppFiles/"+fileName_line->text();
+void Save_and_build::slotSaveButtonClicked() {
+    QString fileName = fileName_line->text().trimmed();
+    
+    // Проверка пустого имени
+    if (fileName.isEmpty()) {
+        QMessageBox::warning(this, "Error", "File name cannot be empty!");
+        return;
+    }
+    
+    // Добавляем расширение .cpp если нужно
+    if (!fileName.endsWith(".cpp", Qt::CaseInsensitive)) {
+        fileName += ".cpp";
+    }
 
-    QFile remove_old_file(filePath);
-    remove_old_file.remove();
-    remove_old_file.close();
+    // Создаем директорию если не существует
+    QDir saveDir("/home/zero/Documents/cppfiles");
+    if (!saveDir.exists()) {
+        saveDir.mkpath(".");
+    }
 
+    QString filePath = saveDir.filePath(fileName);
+    
+    // Удаляем старый файл если существует
+    if (QFile::exists(filePath)) {
+        if (!QFile::remove(filePath)) {
+            QMessageBox::critical(this, "Error", "Can't remove old file!");
+            return;
+        }
+    }
+
+    // Сохраняем код
     QFile file(filePath);
-    file.open(QIODevice::ReadWrite);
-
-
-    QTextStream out(&file);
-
-    out << code_edit.toPlainText();
-
-    qDebug() << fileName << filePath;
-
-    file.close();
-
-    buildFile(filePath, fileName);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&file);
+        out << code_edit.toPlainText();
+        file.close();
+        
+        // Запускаем сборку
+        buildFile(filePath, fileName);
+    } else {
+        QMessageBox::critical(this, "Error", "Failed to save file: " + file.errorString());
+    }
 }
